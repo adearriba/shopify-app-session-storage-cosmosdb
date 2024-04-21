@@ -1,0 +1,42 @@
+{
+    "compileOnSave": true,
+    "compilerOptions": {
+        "composite": true,
+        "declaration": true,
+        "declarationMap": true,
+        "pretty": true,
+        "module": "Node16",
+        "moduleResolution": "Node16",
+        "target": "ES2021",
+        "downlevelIteration": true,
+        "esModuleInterop": true,
+        "sourceMap": true,
+        "noEmitOnError": false,
+        "experimentalDecorators": true,
+        "noUnusedParameters": true,
+        "noUnusedLocals": true,
+        "importHelpers": true,
+        "strictNullChecks": true,
+        "stripInternal": true,
+        "noImplicitAny": true,
+        "noImplicitThis": true,
+        "resolveJsonModule": true,
+        "skipLibCheck": true,
+        "lib": [
+            "esnext.asynciterable",
+            "ES2021",
+        ],
+        "baseUrl": ".",
+        "outDir": "./dist/ts",
+        "rootDir": "src"
+    },
+    "include": [
+        "src/**/*.ts"
+    ],
+    "exclude": [
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/test/*",
+        "**/__tests__/*"
+    ]
+}
