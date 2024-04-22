@@ -6,9 +6,9 @@ Create an instance by using `withCredentials` static method:
 
 ```javascript
 const cosmosDBSessionStorage = CosmosDBSessionStorage.withCredentials(
-	"endpoint",
-	"key",
-	"dbName"
+    "endpoint",
+    "key",
+    "dbName"
 );
 ```
 
@@ -16,15 +16,15 @@ Optionally, you can use an additional configuration by adding a `CosmosDBSession
 
 ```javascript
 const cosmosDBSessionStorage = CosmosDBSessionStorage.withCredentials(
-  "endpoint",
-  "key",
-  "dbName",
-  {
-    containerName: "shopify_sessions",
-	containerRequest: {
-		partitionKey: "/id",
-        ...
-	},
-  }
+    "endpoint",
+    "key",
+    "dbName",
+    {
+        containerName: "shopify_sessions",
+        containerRequest: {
+            partitionKey: "/id",
+            ...
+        },
+    }
 );
 ```
