@@ -1,6 +1,6 @@
 {
   "name": "@adearriba/shopify-app-session-storage-cosmosdb",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Shopify App Session Storage for Azure Cosmos DB",
   "main": "dist/ts/cosmosdb.js",
   "types": "./dist/ts/cosmosdb.d.ts",

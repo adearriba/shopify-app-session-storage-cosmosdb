@@ -26,7 +26,19 @@ export class CosmosDBSessionStorage implements SessionStorage {
 		dbName: string,
 		opts?: Partial<CosmosDBSessionStorageOptions>
 	) {
-		return new CosmosDBSessionStorage(endpoint, key, dbName, opts);
+		return new CosmosDBSessionStorage(
+			`AccountEndpoint=${endpoint};AccountKey=${key}`,
+			dbName,
+			opts
+		);
+	}
+
+	static withConnectionString(
+		connectionString: string,
+		dbName: string,
+		opts?: Partial<CosmosDBSessionStorageOptions>
+	) {
+		return new CosmosDBSessionStorage(connectionString, dbName, opts);
 	}
 
 	public readonly ready: Promise<void>;
@@ -34,8 +46,7 @@ export class CosmosDBSessionStorage implements SessionStorage {
 	private options: CosmosDBSessionStorageOptions;
 
 	private constructor(
-		private endpoint: string,
-		private key: string,
+		private connectionString: string,
 		private dbName: string,
 		opts: Partial<CosmosDBSessionStorageOptions> = {}
 	) {
@@ -106,8 +117,9 @@ export class CosmosDBSessionStorage implements SessionStorage {
 			],
 		};
 
-		const { resources } =
-			await this.container!.items.query<Session>(querySpec).fetchAll();
+		const { resources } = await this.container!.items.query<Session>(
+			querySpec
+		).fetchAll();
 
 		return resources.map((session) => new Session(session as SessionParams));
 	}
@@ -129,10 +141,7 @@ export class CosmosDBSessionStorage implements SessionStorage {
 	}
 
 	private async init() {
-		this.client = new CosmosClient({
-			endpoint: this.endpoint,
-			key: this.key,
-		});
+		this.client = new CosmosClient(this.connectionString);
 
 		await this.client.databases.createIfNotExists({ id: this.dbName });
 		await this.client.database(this.dbName).containers.createIfNotExists({
