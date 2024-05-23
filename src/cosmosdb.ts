@@ -11,12 +11,18 @@ import { SessionStorage } from "@shopify/shopify-app-session-storage";
 export interface CosmosDBSessionStorageOptions {
 	containerName: string;
 	containerRequest?: ContainerRequest;
+	getPartitionKeyById?: (id: string) => string;
+	getPartitionKeyByShop?: (id: string) => string;
 }
 const defaultCosmosDBSessionStorageOptions: CosmosDBSessionStorageOptions = {
 	containerName: "shopify_sessions",
 	containerRequest: {
 		partitionKey: "/id",
 	},
+};
+
+type CosmosDBSession = Session & {
+	[key: string]: string
 };
 
 export class CosmosDBSessionStorage implements SessionStorage {
@@ -54,19 +60,24 @@ export class CosmosDBSessionStorage implements SessionStorage {
 		this.ready = this.init();
 	}
 
-	public async storeSession(session: Session): Promise<boolean> {
+	public async storeSession(session: CosmosDBSession): Promise<boolean> {
 		await this.ready;
+
+		if (this.options.containerRequest?.partitionKey) {
+			const pk = this.options.containerRequest?.partitionKey.toString().replace('/', '');
+			session[pk] = this.getPartitionKeyById(session.id);
+		}
 
 		await this.container.items.upsert(session);
 		return true;
 	}
 
-	public async loadSession(id: string): Promise<Session | undefined> {
+	public async loadSession(id: string): Promise<CosmosDBSession | undefined> {
 		await this.ready;
 
 		const { resource } = await this.container
-			.item(id, this.getPartitionKey(id))
-			.read<Session>();
+			.item(id, this.getPartitionKeyById(id))
+			.read<CosmosDBSession>();
 
 		if (resource === undefined) return undefined;
 
@@ -74,18 +85,18 @@ export class CosmosDBSessionStorage implements SessionStorage {
 			resource.expires = new Date(resource.expires);
 		}
 
-		return new Session(resource as SessionParams);
+		return new Session(resource as SessionParams) as CosmosDBSession;
 	}
 
 	public async deleteSession(id: string): Promise<boolean> {
 		await this.ready;
 
 		const { resource } = await this.container
-			.item(id, this.getPartitionKey(id))
+			.item(id, this.getPartitionKeyById(id))
 			.read();
 		if (resource === undefined) return true;
 
-		await this.container.item(id, this.getPartitionKey(id)).delete();
+		await this.container.item(id, this.getPartitionKeyById(id)).delete();
 
 		return true;
 	}
@@ -97,7 +108,7 @@ export class CosmosDBSessionStorage implements SessionStorage {
 			return {
 				id: id,
 				operationType: "Delete",
-				partitionKey: this.getPartitionKey(id),
+				partitionKey: this.getPartitionKeyById(id),
 			};
 		});
 
@@ -105,7 +116,7 @@ export class CosmosDBSessionStorage implements SessionStorage {
 		return true;
 	}
 
-	public async findSessionsByShop(shop: string): Promise<Session[]> {
+	public async findSessionsByShop(shop: string): Promise<CosmosDBSession[]> {
 		await this.ready;
 		const querySpec: SqlQuerySpec = {
 			query: `SELECT * FROM Sessions c WHERE c.shop = @shop`,
@@ -118,20 +129,40 @@ export class CosmosDBSessionStorage implements SessionStorage {
 		};
 
 		const { resources } = await this.container!.items.query<Session>(
-			querySpec
+			querySpec, {
+			partitionKey: this.getPartitionKeyByShop(shop),
+		}
 		).fetchAll();
 
-		return resources.map((session) => new Session(session as SessionParams));
+		return resources.map((session) => new Session(session as SessionParams) as CosmosDBSession);
 	}
 
 	public disconnect(): void {
 		this.client.dispose();
 	}
 
-	private getPartitionKey(id: string) {
-		return this.options.containerRequest?.partitionKey == "/id"
-			? id
-			: undefined;
+	private getPartitionKeyById(id: string) {
+		const isPKId = this.options.containerRequest?.partitionKey == "/id";
+
+		if (this.options.getPartitionKeyById) {
+			return this.options.getPartitionKeyById(id);
+		} else if (isPKId) {
+			return id;
+		}
+
+		throw "PartitionKey is not ID and getPartitionKeyById was not defined.";
+	}
+
+	private getPartitionKeyByShop(shop: string) {
+		const isPKId = this.options.containerRequest?.partitionKey == "/id";
+
+		if (this.options.getPartitionKeyByShop) {
+			return this.options.getPartitionKeyByShop(shop);
+		} else if (isPKId) {
+			return undefined;
+		}
+
+		throw "PartitionKey is not ID and getPartitionKeyByShop was not defined.";
 	}
 
 	private get container(): Container {
