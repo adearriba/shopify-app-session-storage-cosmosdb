@@ -1,10 +1,9 @@
 import { describe, afterAll, vi, beforeAll, afterEach } from "vitest";
 import { batteryOfTests } from "./utils";
 import { CosmosDBSessionStorage } from "../cosmosdb";
-import { CosmosClient } from "@azure/cosmos";
 
 const dbName = "shopitest";
-const endpoint = "https://172.26.80.1:8081";
+const endpoint = "https://172.23.80.1:8081";
 const key = "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==";
 const connectionString = `AccountEndpoint=${endpoint};AccountKey=${key}`;
 

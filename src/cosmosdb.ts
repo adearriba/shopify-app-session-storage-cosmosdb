@@ -173,11 +173,25 @@ export class CosmosDBSessionStorage implements SessionStorage {
 
 	private async init() {
 		this.client = new CosmosClient(this.connectionString);
-
-		await this.client.databases.createIfNotExists({ id: this.dbName });
-		await this.client.database(this.dbName).containers.createIfNotExists({
-			...this.options.containerRequest,
-			id: this.options.containerName,
-		});
+		const retry = 0;
+		const maxRetries = 3;
+		try {
+			await this.client.databases.createIfNotExists({ id: this.dbName });
+			await this.client.database(this.dbName).containers.createIfNotExists({
+				...this.options.containerRequest,
+				id: this.options.containerName,
+			});
+		} catch (e) {
+			await delay(500);
+			if (retry < maxRetries) this.init();
+		}
 	}
+}
+
+function delay(ms: number) {
+	return new Promise<void>(resolve => {
+		setTimeout(() => {
+			resolve();
+		}, ms);
+	});
 }
