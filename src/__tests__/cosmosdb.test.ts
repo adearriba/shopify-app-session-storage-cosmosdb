@@ -1,6 +1,7 @@
 import { describe, afterAll, vi, beforeAll, afterEach } from "vitest";
 import { batteryOfTests } from "./utils";
 import { CosmosDBSessionStorage } from "../cosmosdb";
+import { CosmosClient } from "@azure/cosmos";
 
 const dbName = "shopitest";
 const endpoint = "https://172.23.80.1:8081";
@@ -78,4 +79,17 @@ describe("CosmosDBSessionStorage - Standard Partition Key", () => {
 
 		batteryOfTests(async () => storage);
 	});
+});
+
+describe("CosmosDBSessionStorage - Passing CosmosClient", () => {
+	const client: CosmosClient = new CosmosClient(connectionString);
+	const storage = CosmosDBSessionStorage.withClient(client, dbName, {
+		containerName: 'Sessions_Client',
+	});
+
+	afterAll(async () => {
+		await storage.disconnect();
+	});
+
+	batteryOfTests(async () => storage);
 });

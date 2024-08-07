@@ -33,8 +33,9 @@ export class CosmosDBSessionStorage implements SessionStorage {
 		opts?: Partial<CosmosDBSessionStorageOptions>
 	) {
 		return new CosmosDBSessionStorage(
-			`AccountEndpoint=${endpoint};AccountKey=${key}`,
 			dbName,
+			`AccountEndpoint=${endpoint};AccountKey=${key}`,
+			undefined,
 			opts
 		);
 	}
@@ -44,7 +45,16 @@ export class CosmosDBSessionStorage implements SessionStorage {
 		dbName: string,
 		opts?: Partial<CosmosDBSessionStorageOptions>
 	) {
-		return new CosmosDBSessionStorage(connectionString, dbName, opts);
+		return new CosmosDBSessionStorage(dbName, connectionString, undefined, opts);
+	}
+
+	static withClient(
+		cosmosClient: CosmosClient,
+		dbName: string,
+		opts?: Partial<CosmosDBSessionStorageOptions>
+	) {
+
+		return new CosmosDBSessionStorage(dbName, undefined, cosmosClient, opts);
 	}
 
 	public readonly ready: Promise<void>;
@@ -52,12 +62,13 @@ export class CosmosDBSessionStorage implements SessionStorage {
 	private options: CosmosDBSessionStorageOptions;
 
 	private constructor(
-		private connectionString: string,
 		private dbName: string,
-		opts: Partial<CosmosDBSessionStorageOptions> = {}
+		connectionString: string | undefined,
+		cosmosClient: CosmosClient | undefined = undefined,
+		opts: Partial<CosmosDBSessionStorageOptions> = {},
 	) {
 		this.options = { ...defaultCosmosDBSessionStorageOptions, ...opts };
-		this.ready = this.init();
+		this.ready = this.init(connectionString, cosmosClient);
 	}
 
 	public async storeSession(session: CosmosDBSession): Promise<boolean> {
@@ -171,8 +182,10 @@ export class CosmosDBSessionStorage implements SessionStorage {
 			.container(this.options.containerName);
 	}
 
-	private async init() {
-		this.client = new CosmosClient(this.connectionString);
+	private async init(connectionString: string | undefined, client: CosmosClient | undefined = undefined) {
+		if (!connectionString && !client) throw 'No connection string or client provided.';
+		this.client = client ?? new CosmosClient(connectionString!);
+
 		const retry = 0;
 		const maxRetries = 3;
 		try {
@@ -183,7 +196,7 @@ export class CosmosDBSessionStorage implements SessionStorage {
 			});
 		} catch (e) {
 			await delay(500);
-			if (retry < maxRetries) this.init();
+			if (retry < maxRetries) this.init(connectionString, client);
 		}
 	}
 }
